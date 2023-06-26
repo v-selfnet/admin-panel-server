@@ -28,7 +28,16 @@ const client = new MongoClient(uri, {
   try {
     await client.connect();
 
-    // start custome code from here
+    // ******************** start custome code from here ************************
+    const usersCollection = client.db('adminPanelDB').collection('users');
+
+    // create DB & store all users 
+    // from Register.jsx & SocialLogin.jsx
+    app.post('/users', async (req, res) => {
+        const user = req.body;
+        const result = await usersCollection.insertOne(user);
+        res.send(result);
+    })
     
 
     // ping success to mongoDB
@@ -39,8 +48,6 @@ const client = new MongoClient(uri, {
   }
 }
 run().catch(console.dir);
-
-
 
 // testing serve setup
 app.get('/', (req, res) => {
