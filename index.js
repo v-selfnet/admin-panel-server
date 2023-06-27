@@ -23,7 +23,6 @@ const client = new MongoClient(uri, {
   }
 });
 
-// async function run() {
  const run = async () => {
   try {
     await client.connect();
@@ -35,6 +34,8 @@ const client = new MongoClient(uri, {
     // from Register.jsx & SocialLogin.jsx
     app.post('/users', async (req, res) => {
         const user = req.body;
+        // const existingUser = await usersCollection.findOne({email: user.email})
+        if(await usersCollection.findOne({email: user.email})) return;
         const result = await usersCollection.insertOne(user);
         res.send(result);
     })
