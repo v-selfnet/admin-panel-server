@@ -40,6 +40,11 @@ const client = new MongoClient(uri, {
         res.send(result);
     })
     
+    // from ManageUsers.jsx
+    app.get('/users', async (req, res) => {
+        const result = await usersCollection.find().toArray();
+        res.send(result);
+    })
 
     // ping success to mongoDB
     await client.db("admin").command({ ping: 1 });
