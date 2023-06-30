@@ -59,6 +59,17 @@ const run = async () => {
       res.send({ token })
     })
 
+     // warning: use verifyJWT before using verifyAdmin
+    // middleware
+    // const verifyAdmin = async (req, res, next) => {
+    //   const decodedEmail = req.decoded.email;
+    //   const user = await usersCollection.findOne({email:decodedEmail})
+    //   if(user.role !== 'admin') {
+    //     return res.status(403).send({ error: true, message: 'forbidden - not an admin' });
+    //   }
+    //   next();
+    // }
+
     // create DB & store all users 
     // from Register.jsx & SocialLogin.jsx
     app.post('/users', async (req, res) => {
@@ -80,8 +91,8 @@ const run = async () => {
     // from ManageUsers.jsx
     // req.query.email = axiosSecure.get(`/users?email=${user?.email}`)
     app.get('/users', verifyJWT, async (req, res) => {
-      const userEmail = req.query.email; console.log('user:', userEmail)
-      const decodedEmail = req.decoded.email; console.log('decoded:', decodedEmail)
+      const userEmail = req.query.email; 
+      const decodedEmail = req.decoded.email;
 
       if (userEmail !== decodedEmail || req.decoded.expiresIn === true) {
         return res.status(403).send({ error: true, message: 'forbidden. other users data can not access' })
@@ -93,6 +104,20 @@ const run = async () => {
 
 
 
+    // check admin user or not
+    // request from useAdmin.jsx
+    app.get('/users/admin/:email', verifyJWT, async (req, res) => {
+      const email = req.params.email;
+      // console.log('check admin:', email);
+      if (req.decoded.email !== email) {
+        res.send({ admin: false })
+      }
+      const query = { email: email };
+      const user = await usersCollection.findOne(query);
+      const result = { admin: user?.role === 'admin' }
+      console.log('admin status:',result)
+      res.send(result);
+    })
 
 
 
