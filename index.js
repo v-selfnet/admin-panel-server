@@ -4,15 +4,35 @@ const cors = require('cors');
 const port = process.env.PORT || 3000;
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const jwt = require('jsonwebtoken');
+
 
 // console.log(process.env.DB_PASS)
+// create token : node > require('crypto').randomBytes(64).toString('hex')
+// console.log(process.env.JWT_TOKEN)
 
 // middleware
 app.use(cors());
 app.use(express.json())
 
-// connect driver MongoDB
+// middleware: JWT verify token from client request
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({ error: true, message: 'headers error: nauthorized access' })
+  }
+  // token received from client which is store in localstorage
+  const token = authorization.split(" ")[1];
+  jwt.verify(token, process.env.JWT_TOKEN, (err, decoded) => {
+    if (err) {
+      return res.status(401).send({ err: true, message: 'verified error: unauthorized access' })
+    }
+    req.decoded = decoded;
+    next();
+  })
+}
 
+// connect driver MongoDB
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.vgnfmcl.mongodb.net/?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, {
@@ -30,6 +50,15 @@ const run = async () => {
     // ******************** start custome code from here ************************
     const usersCollection = client.db('adminPanelDB').collection('users');
 
+    // JWT
+    // token request from AuthProvider.jsx
+    app.post('/jwt', async (req, res) => {
+      const user = req.body;
+      // console.log(user);
+      const token = jwt.sign(user, process.env.JWT_TOKEN, { expiresIn: '5h' });
+      res.send({ token })
+    })
+
     // create DB & store all users 
     // from Register.jsx & SocialLogin.jsx
     app.post('/users', async (req, res) => {
@@ -43,14 +72,33 @@ const run = async () => {
       res.send(result);
     })
 
-    // display users info in UI from ManageUsers.jsx
-    app.get('/users', async (req, res) => {
-      const result = await usersCollection.find().toArray();
-      res.send(result);
+
+
+
+
+    // display users info in UI from 
+    // from ManageUsers.jsx
+    // req.query.email = axiosSecure.get(`/users?email=${user?.email}`)
+    app.get('/users', verifyJWT, async (req, res) => {
+      const userEmail = req.query.email; console.log('user:', userEmail)
+      const decodedEmail = req.decoded.email; console.log('decoded:', decodedEmail)
+
+      if (userEmail !== decodedEmail || req.decoded.expiresIn === true) {
+        return res.status(403).send({ error: true, message: 'forbidden. other users data can not access' })
+      } else {
+        const result = await usersCollection.find().toArray();
+        res.send(result)
+      }
     })
 
+
+
+
+
+
+
     // update user info. become an Admin
-    // Manageusers.jsx
+    // from Manageusers.jsx
     app.patch('/users/admin/:id', async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) }
